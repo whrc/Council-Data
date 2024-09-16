@@ -1,0 +1,325 @@
+---
+title: "Prep for Ameriflux - YK2 Unburned"
+author: "Kyle Arndt"
+date: "2024-02-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = 'C:/Users/karndt.WHRC/Desktop/sites/council/data/') #use this to set your directory
+```
+
+Libraries
+```{r}
+rm(list = ls())
+library(data.table)
+library(ggplot2)
+library(zoo)
+library(cowplot)
+Sys.setenv(TZ = "UTC")
+setwd('C:/Users/karndt.WHRC/Desktop/sites/council/data/')
+```
+
+Load Data
+```{r}
+df = fread(input = "./AMF_US-NGC_BASE_HH_2-5.csv",na.strings = c('-9999'))
+year = substr(x = df$TIMESTAMP_END,start = 1,stop = 4)
+month = substr(x = df$TIMESTAMP_END,start = 5,stop = 6)
+day = substr(x = df$TIMESTAMP_END,start = 7,stop = 8)
+hour = substr(x = df$TIMESTAMP_END,start = 9,stop = 10)
+min = substr(x = df$TIMESTAMP_END,start = 11,stop = 12)
+
+date = paste(year,month,day,sep = '-')
+time = paste(hour,min,sep = ':')
+ts = paste(date,time,sep = ' ')
+
+df$ts = as.POSIXct(ts)
+
+#check timestamp
+ggplot(data = df)+
+  geom_point(aes(ts,SW_IN))+
+  scale_x_datetime(limits = as.POSIXct(c("2019-06-06","2019-06-10")))
+
+#remove duplicated time stamp rows
+df = df[!duplicated(df$ts),]
+```
+
+
+gap fill short gaps in the met data first
+```{r}
+gap = 3
+
+#energy fluxes ###########################
+df$G_1_1_1 = na.spline(df$G_1_1_1,maxgap = gap)
+
+#meteorology and weather #################################
+df$TA  = na.spline(df$TA,maxgap = gap)
+df$RH  = na.spline(df$RH,maxgap = gap)
+
+#Radiation #####################################
+df$LW_IN  = na.spline(df$LW_IN,maxgap = gap)
+df$LW_OUT = na.spline(df$LW_OUT,maxgap = gap)
+df$SW_IN  = na.spline(df$SW_IN,maxgap = gap)
+df$SW_OUT = na.spline(df$SW_OUT,maxgap = gap)
+
+df$NETRAD = na.spline(df$NETRAD,maxgap = gap)
+
+df$PPFD_IN = na.spline(df$PPFD_IN,maxgap = gap)
+df$PPFD_OUT = na.spline(df$PPFD_OUT,maxgap = gap)
+
+#Soil factors ###################################
+#all swc in %
+df$SWC_1_1_1 = na.spline(df$SWC_1_1_1,maxgap = gap)
+df$SWC_2_1_1 = na.spline(df$SWC_2_1_1,maxgap = gap)
+df$SWC_3_1_1 = na.spline(df$SWC_3_1_1,maxgap = gap)
+
+#all soil temps deg C
+df$TS_1_1_1 = na.spline(df$TS_1_1_1,maxgap = gap)
+df$TS_2_1_1 = na.spline(df$TS_2_1_1,maxgap = gap)
+df$TS_3_1_1 = na.spline(df$TS_3_1_1,maxgap = gap)
+```
+
+
+```{r}
+write.csv(x = df,file = "./council_2016_2022.csv",row.names = F)
+```
+
+Add ERA5 data
+```{r}
+#setwd('C:/Users/karndt.WHRC/Desktop/sites/council/data/')
+era = fread('./era5_council.csv')
+
+df$date = df$ts
+
+summary(era$date)
+#merge together
+all = merge(era,df,by = 'date',all = T)
+all = all[!duplicated(all$date),]
+```
+
+
+RH
+```{r}
+rh.mod = lm(formula = all$RH ~ all$rh)
+summary(rh.mod)
+
+all$rh.eramod = all$rh*rh.mod$coefficients[2] + rh.mod$coefficients[1]   
+
+ggplot(data = all)+
+  geom_point(aes(date,rh,col='ERA5'))+
+  geom_point(aes(date,RH,col='Site'))
+
+ggplot(data = all,aes(rh,RH))+
+  geom_point()+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)
+```
+
+
+#AirT
+```{r}
+ggplot(data = all)+
+  geom_point(aes(date,airt,col='ERA5'))+
+  geom_point(aes(date,all$TA,col='Site'))
+
+airt.mod = lm(formula = all$TA ~ all$airt)
+summary(airt.mod)
+
+all$airt.eramod = all$airt*airt.mod$coefficients[2] + airt.mod$coefficients[1]     
+
+ggplot(data = all,aes(airt,TA))+theme_bw()+
+  geom_point()+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)
+```
+
+
+#SoilT
+```{r}
+ggplot(data = all)+
+  geom_point(aes(date,st1,col='ERA5.1'))+
+  geom_point(aes(date,st2,col='ERA5.2'))+
+  geom_point(aes(date,all$TS_1_1_1,col='Site1'))+
+  geom_point(aes(date,all$TS_2_1_1,col='Site2'))+
+  geom_point(aes(date,all$TS_3_1_1,col='Site3'))
+
+soilt.mod = lm(formula = all$TS_2_1_1 ~ all$st2)
+all$tsoil.eramod = all$st2*soilt.mod$coefficients[2] + soilt.mod$coefficients[1]           
+
+ggplot(data = all)+
+  geom_point(aes(date,st2,col='ERA5'))+
+  geom_point(aes(date,TS_2_1_1,col='Site'))+
+  geom_point(aes(date,tsoil.eramod,col='Lin. Reg.'))
+```
+
+
+#Rg
+```{r}
+ggplot(data = all)+
+  geom_point(aes(date,rad,col='ERA5'))+
+  geom_point(aes(date,all$SW_IN,col='Site'))
+
+ggplot(data = all)+
+  geom_point(aes(date,rad,col='ERA5'))+
+  geom_point(aes(date,SW_IN,col='Site'))+
+  scale_x_datetime(limits = as.POSIXct(c('2019-06-20','2019-07-1')))
+
+rad.mod = lm(formula = all$SW_IN ~ all$rad)
+summary(rad.mod)
+
+all$rad.eramod = all$rad*rad.mod$coefficients[2] + rad.mod$coefficients[1]   
+
+ggplot(data = all,aes(rad,SW_IN))+theme_bw()+
+  geom_point()+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)
+```
+
+#ws
+```{r}
+ggplot(data = all)+
+  geom_point(aes(date,ws,col='ERA5'))+
+  geom_point(aes(date,all$WS,col='Site'))
+
+ws.mod = lm(formula = all$WS ~ all$ws)
+summary(ws.mod)
+
+all$ws.eramod = all$ws*ws.mod$coefficients[2] + ws.mod$coefficients[1]    
+
+ggplot(data = all,aes(ws,WS))+theme_bw()+
+  geom_point()+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)
+```
+
+```{r}
+ggplot(data = all)+
+  geom_point(aes(date,le,col='ERA5'))+
+  geom_point(aes(date,LE,col='Site'))
+
+le.mod = lm(formula = all$LE ~ all$le)
+summary(le.mod)
+
+all$le.eramod = all$le*le.mod$coefficients[2] + le.mod$coefficients[1]    
+
+ggplot(data = all,aes(le,LE))+theme_bw()+
+  geom_point()+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)
+```
+
+```{r}
+ggplot(data = all)+
+  geom_point(aes(date,h,col='ERA5'))+
+  geom_point(aes(date,H,col='Site'))
+
+h.mod = lm(formula = all$H ~ all$h)
+summary(h.mod)
+
+all$h.eramod = all$h*h.mod$coefficients[2] + h.mod$coefficients[1]    
+
+ggplot(data = all,aes(h,H))+theme_bw()+
+  geom_point()+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)
+```
+
+
+```{r}
+#remove duplicated timestamp rows
+df = df[!duplicated(df$ts),]
+```
+
+
+```{r}
+#calculate VPD from air t and RH
+svp = 610.7*10^((7.5*all$airt)/(237.3+all$airt))
+all$vpd.era = ((100 - all$rh)/100)*svp  
+
+#calculate VPD from air t and RH
+svp = 610.7*10^((7.5*all$TA)/(237.3+all$TA))
+all$vpd.site = ((100 - all$RH)/100)*svp 
+
+
+ta = ggplot(data = all,aes(airt,TA))+theme_bw()+
+  geom_point(alpha = 0.25)+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 Air T. ("*degree*"C)"))+
+  scale_y_continuous(expression("Site Air T. ("*degree*"C)"))
+
+rh = ggplot(data = all,aes(rh,RH))+theme_bw()+
+  geom_point(alpha = 0.25)+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 RH (%)"))+
+  scale_y_continuous(expression("Site RH (%)"))
+
+vpd = ggplot(data = all,aes(vpd.era,vpd.site))+theme_bw()+
+  geom_point(alpha = 0.25)+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 VPD ("*Wm^-2*")"))+
+  scale_y_continuous(expression("Site VPD ("*Wm^-2*")"))
+
+st = ggplot(data = all,aes(st2,TS_2_1_1))+theme_bw()+
+    geom_point(alpha = 0.25)+
+    geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 Soil T. ("*degree*"C)"))+
+  scale_y_continuous(expression("Site Soil T. ("*degree*"C)"))
+
+sw = ggplot(data = all,aes(rad,SW_IN))+theme_bw()+
+  geom_point(alpha = 0.25)+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 SW ("*Wm^-2*")"))+
+  scale_y_continuous(expression("Site SW ("*Wm^-2*")"))
+
+ws = ggplot(data = all,aes(ws,WS))+theme_bw()+
+  geom_point(alpha = 0.25)+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 WS ("*ms^-1*")"))+
+  scale_y_continuous(expression("Site WS ("*ms^-1*")"))
+
+le = ggplot(data = all,aes(le,LE))+theme_bw()+
+  geom_point(alpha = 0.25)+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 LE ("*Wm^-2*")"))+
+  scale_y_continuous(expression("Site LE ("*Wm^-2*")"))
+
+h = ggplot(data = all,aes(h,H))+theme_bw()+
+  geom_point(alpha = 0.25)+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 H ("*Wm^-2*")"))+
+  scale_y_continuous(expression("Site H ("*Wm^-2*")"))
+
+swc = ggplot(data = all,aes(vwc1*100,SWC_1_1_1))+theme_bw()+
+  geom_point(alpha = 0.25)+
+  geom_smooth(method = 'lm')+
+  geom_abline(slope = 1,intercept = 0,col='red',lty=2)+
+  scale_x_continuous(expression("ERA5 VWC (%)"))+
+  scale_y_continuous(expression("Site VWC (%)"))
+
+#png(filename = 'C:/Users/karndt.WHRC/Desktop/sites/YKD/plots/unburnedera5.png',width = 8,height = 8,units = 'in',res = 1500)
+plot_grid(ta,rh,vpd,st,sw,ws,le,h,swc)
+#dev.off()
+```
+
+
+#reduce down to churchill size and add to final data set
+```{r}
+eras = all[,c('date','rh.eramod','airt.eramod','ws.eramod','rad.eramod','tsoil.eramod','le.eramod','h.eramod')]
+
+df = df[!duplicated(df$date),]
+df = merge(df,eras,by = 'date',all.x = T)
+
+write.csv(x = df,file = './council_2016_2022_era.csv',row.names = F,quote = F)
+```
+
+
+
