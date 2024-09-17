@@ -2,10 +2,10 @@ rm(list = ls())
 
 library(data.table)
 Sys.setenv(TZ='UTC')
-setwd('C:/Users/karndt.WHRC/Desktop/sites/YKD/Ameriflux YK/unburned/') #use this to set your directory
+setwd('C:/Users/karndt.WHRC/Desktop/sites/council/data') #use this to set your directory
 
 #Prep for Reddy for an initial gap filling
-dat = fread('./ykd_unburned_2019_2023_gf.csv')
+dat = fread('./council_2017_2022_gf.csv')
 
 #time variables #########################################################
 dat$ts = as.POSIXct(dat$ts)
@@ -16,19 +16,19 @@ h    = as.numeric(format(dat$ts,'%H')) #full hours
 h.5  = as.numeric(ifelse(format(dat$ts,'%M') == '00',0,0.5)) #half hour decimals
 Hour = h+h.5 #Hour in the expected format
 
-dat$nee = ifelse(is.na(dat$co2_flux.c),dat$rfnee,dat$co2_flux.c)
-dat$ch4 = ifelse(is.na(dat$ch4_flux.c),dat$rfch4,dat$ch4_flux.c)
+dat$nee = ifelse(is.na(dat$FC),dat$rfnee,dat$FC)
+dat$ch4 = ifelse(is.na(dat$FCH4),dat$rfch4,dat$FCH4)
 
 #Reddy df
 reddy = data.frame(Year,DoY,Hour,
                    dat$nee,
                    dat$ch4,
-                   dat$H.c,
-                   dat$LE.c,
-                   dat$`u*`,
+                   dat$H,
+                   dat$LE,
+                   dat$USTAR,
                    dat$rad.eramod,
                    dat$airt.eramod,
-                   dat$TS_2_1_1.c,
+                   dat$tsoil.eramod,
                    dat$rh.eramod)
 names(reddy) = c('Year','DoY','Hour','NEE','CH4','H','LE','Ustar','Rg','Tair','Tsoil','RH')
 
@@ -53,4 +53,4 @@ reddy2[1,2] = '--'
 
 reddy2 = reddy2[complete.cases(reddy2$Year),]
 
-write.table(x = reddy2,file = './reddy_ykdub.txt',row.names = F,sep = '\t',quote = F,na = '-9999')
+write.table(x = reddy2,file = './reddy_council.txt',row.names = F,sep = '\t',quote = F,na = '-9999')

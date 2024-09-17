@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = 'C:/Users/karndt.WHRC/Desktop/sites/YKD/Ameriflux YK/unburned/') #use this to set your directory
+knitr::opts_knit$set(root.dir = 'C:/Users/karndt.WHRC/Desktop/sites/council/data') #use this to set your directory
 ```
 
 Libraries
@@ -22,7 +22,7 @@ Sys.setenv(TZ = 'UTC')
 
 Load Data
 ```{r}
-df = fread(input = "./ykd_unburned_gapfilled_clean_2019_2023.csv")
+df = fread(input = "./council_gapfilled_clean_2019_2023.csv")
 ```
 
 Format the time stamps at start and end
@@ -53,95 +53,95 @@ rm(daye,days,mine,mins,houre,hours,monthe,months,yeare,years)
 Format and name data
 ```{r}
 #gas concentrations and variance ################################
-CO2 = df$co2_mole_fraction
-CH4 = ifelse(df$ch4_mole_fraction<0,NA,df$ch4_mole_fraction*1000)
-H2O = df$h2o_mole_fraction
-
-CO2_MIXING_RATIO = df$co2_mixing_ratio
-CH4_MIXING_RATIO = ifelse(df$ch4_mixing_ratio<0,NA,df$ch4_mixing_ratio*1000)
-#H2O mole fraction and H2O mixing ratio are identical
-
-#standard deviation of co2 wet fraction. (Standard deviation is sqrt of the variance)
+ CO2 = df$CO2
+ CH4 = df$CH4
+ H2O = df$H2O
+# 
+# CO2_MIXING_RATIO = df$co2_mixing_ratio
+# CH4_MIXING_RATIO = ifelse(df$ch4_mixing_ratio<0,NA,df$ch4_mixing_ratio*1000)
+# #H2O mole fraction and H2O mixing ratio are identical
+# 
+# #standard deviation of co2 wet fraction. (Standard deviation is sqrt of the variance)
 # CO2_SIGMA = sqrt(df$co2_var)
 # CH4_SIGMA = sqrt(df$ch4_var*1000)
 # H2O_SIGMA = sqrt(df$h2o_var)
-
-#Gas Fluxes ######################
-#CO2 flux is umol m-2 s-1
-FC   = df$co2_flux.c
-FC_F = ifelse(is.na(df$co2_flux.c),df$rfnee,df$co2_flux.c)
-FCH4 = df$ch4_flux.c*1000
-FCH4_F = ifelse(is.na(df$ch4_flux.c),df$rfch4,df$ch4_flux.c)*1000
-FH2O = df$h2o_flux
+# 
+# #Gas Fluxes ######################
+ #CO2 flux is umol m-2 s-1
+FC   = df$FC
+FC_F = ifelse(is.na(df$FC),df$rfnee,df$FC)
+FCH4 = df$FCH4
+FCH4_F = ifelse(is.na(df$FCH4),df$rfch4,df$FCH4)
+#FH2O = df$h2o_flux
 
 #GPP_F   = df$GPP_f
-GPP     = ifelse(is.na(df$co2_flux.c),NA,df$GPP_f)
+GPP     = ifelse(is.na(df$FC),NA,df$GPP_f)
 GPP_F   = df$GPP_f
-#RECO_F  = df$Reco
-RECO     = ifelse(is.na(df$co2_flux.c),NA,df$Reco)
+RECO     = ifelse(is.na(df$FC),NA,df$Reco)
 RECO_F = df$Reco
 
 #energy fluxes ###########################
-G_1_1_1 = df$SHF_1_1_1.c
-G_2_1_1 = df$SHF_2_1_1.c
-G_3_1_1 = df$SHF_3_1_1.c
+G_1_1_1 = df$G_1_1_1
+#G_2_1_1 = df$G_2_1_1
+#G_3_1_1 = df$G_3_1_1
 
-H       = df$H.c
-LE      = df$LE.c
+H       = df$H
+LE      = df$LE
 
 #meteorology and weather #################################
-PA      = df$air_pressure/1000 #air pressure in kPA
-TA      = df$TA_1_1_1.c    # Air T in Deg C
+PA      = df$PA #air pressure in kPA
+TA      = df$TA    # Air T in Deg C
 SVP     = 610.7*10^((7.5*TA)/(237.3+TA)) #NOT INCLUDED IN FINAL
-RH      = df$RH_1_1_1.c   #RH in %
-T_SONIC = df$sonic_temperature-273.15 #sonic temp in Deg C
+RH      = df$RH   #RH in %
+T_SONIC = df$T_SONIC #sonic temp in Deg C
 VPD     = ((100 - RH)/100)*SVP/100 #VPD in hPA
-P       = df$P_RAIN_1_1_1*1000 # rain in mm
+#P       = df$p*1000 # rain in mm
 
 #Radiation #####################################
-ALB = df$ALB_1_1_1.c*100 #albedo in %
+#ALB = df$ALB_1_1_1.c*100 #albedo in %
 
-LW_IN  = ifelse(df$LWIN_1_1_1.c < 50,NA,df$LWIN_1_1_1.c)  # Wm-2
-LW_OUT = df$LWOUT_1_1_1.c # Wm-2
-SW_IN  = df$SWIN_1_1_1.c   # Wm-2
-SW_OUT = df$SWOUT_1_1_1.c # Wm-2
+LW_IN  = df$LW_IN  # Wm-2
+LW_OUT = df$LW_OUT # Wm-2
+SW_IN  = df$SW_IN   # Wm-2
+SW_OUT = df$SW_OUT # Wm-2
 
-NETRAD = df$RN_1_1_1     # Wm-2
+NETRAD = df$NETRAD     # Wm-2
 
-PPFD_IN = df$PPFD_1_1_1.c   # par in umol m-2 s-1
+PPFD_IN  = df$PPFD_IN   # par in umol m-2 s-1
+PPFD_OUT = df$PPFD_OUT   # par in umol m-2 s-1
 
 #Soil factors ###################################
 #all swc in %
-SWC_1_1_1 = df$SWC_1_1_1.c
-SWC_2_1_1 = df$SWC_2_1_1.c
-SWC_3_1_1 = df$SWC_3_1_1.c
+SWC_1_1_1 = df$SWC_1_1_1
+SWC_2_1_1 = df$SWC_2_1_1
+SWC_3_1_1 = df$SWC_3_1_1
 
 #all soil temps deg C
-TS_1_1_1 = df$TS_1_1_1.c
-TS_2_1_1 = df$TS_2_1_1.c
-TS_3_1_1 = df$TS_3_1_1.c
+TS_1_1_1 = df$TS_1_1_1
+TS_2_1_1 = df$TS_2_1_1
+TS_3_1_1 = df$TS_3_1_1
 
 #wind and turbulence parameters ##############################
-MO_LENGTH = df$L
-ZL        = df$`(z-d)/L`
-TAU       = df$Tau
+MO_LENGTH = df$MO_LENGTH
+ZL        = df$ZL
+TAU       = df$TAU
 
-U_SIGMA = sqrt(df$u_var)
-V_SIGMA = sqrt(df$v_var)
-W_SIGMA = sqrt(df$w_var)
+U_SIGMA = df$U_SIGMA
+V_SIGMA = df$V_SIGMA
+W_SIGMA = df$W_SIGMA
 
-USTAR = df$`u*`
+USTAR = df$USTAR
 
-WD     = df$wind_dir
-WS     = df$wind_speed
-WS_MAX = df$max_wind_speed
+WD     = df$WD
+WS     = df$WS
+WS_MAX = df$WS_MAX
 
 #Quality flags from EP (Mauder and Foken) ################
-FC_SSITC_TEST   = df$qc_co2_flux
-FCH4_SSITC_TEST = df$qc_ch4_flux
-H_SSITC_TEST    = df$qc_H
-LE_SSITC_TEST   = df$qc_LE
-TAU_SSITC_TEST  = df$qc_Tau
+# FC_SSITC_TEST   = df$qc_co2_flux
+# FCH4_SSITC_TEST = df$qc_ch4_flux
+# H_SSITC_TEST    = df$qc_H
+# LE_SSITC_TEST   = df$qc_LE
+# TAU_SSITC_TEST  = df$qc_Tau
 ```
 
 
@@ -153,8 +153,8 @@ plot(H2O) #mmol
 ```
 
 ```{r}
-plot(CO2_MIXING_RATIO) #umol
-plot(CH4_MIXING_RATIO) #nmol
+#plot(CO2_MIXING_RATIO) #umol
+#plot(CH4_MIXING_RATIO) #nmol
 ```
 
 ```{r}
@@ -168,7 +168,7 @@ plot(FC)
 plot(FC_F)
 plot(FCH4)
 plot(FCH4_F)
-plot(FH2O)
+#plot(FH2O)
 plot(GPP_F)
 plot(GPP)
 plot(RECO_F)
@@ -195,13 +195,14 @@ plot(P)
 ```
 
 ```{r}
-plot(ALB)
+#plot(ALB)
 plot(LW_IN)
 plot(LW_OUT)
 plot(SW_IN)
 plot(SW_OUT)
 plot(NETRAD)
 plot(PPFD_IN)
+plot(PPFD_OUT)
 ```
 
 
@@ -229,20 +230,20 @@ plot(WS_MAX)
 ```
 
 ```{r}
-plot(FC_SSITC_TEST)
-plot(FCH4_SSITC_TEST)
-plot(H_SSITC_TEST)
-plot(LE_SSITC_TEST)
-plot(TAU_SSITC_TEST)
+# plot(FC_SSITC_TEST)
+# plot(FCH4_SSITC_TEST)
+# plot(H_SSITC_TEST)
+# plot(LE_SSITC_TEST)
+# plot(TAU_SSITC_TEST)
 ```
 
 
 ```{r}
-US_YK2 = data.frame(TIMESTAMP_START,TIMESTAMP_END,
+US_NGC = data.frame(TIMESTAMP_START,TIMESTAMP_END,
   CO2,CH4,H2O
-,CO2_MIXING_RATIO,CH4_MIXING_RATIO
+#,CO2_MIXING_RATIO,CH4_MIXING_RATIO
 #,CO2_SIGMA,CH4_SIGMA ,H2O_SIGMA 
-,FC,FCH4,FH2O
+,FC,FCH4#,#FH2O
 ,FC_F,FCH4_F,GPP,GPP_F,RECO_F,RECO
 ,G_1_1_1,G_2_1_1,G_3_1_1
 ,H
@@ -252,27 +253,28 @@ US_YK2 = data.frame(TIMESTAMP_START,TIMESTAMP_END,
 ,T_SONIC
 ,TA   
 ,VPD 
-,P
-,ALB
+#,P
+#,ALB
 ,LW_IN
 ,LW_OUT
 ,SW_IN
 ,SW_OUT
 ,NETRAD
 ,PPFD_IN
+,PPFD_OUT
 ,SWC_1_1_1
 ,SWC_2_1_1
 ,SWC_3_1_1
 ,TS_1_1_1
 ,TS_2_1_1
 ,TS_3_1_1
-,MO_LENGTH,ZL,TAU,U_SIGMA,V_SIGMA,W_SIGMA,USTAR,WD,WS,WS_MAX
-,FC_SSITC_TEST,FCH4_SSITC_TEST,H_SSITC_TEST,LE_SSITC_TEST,TAU_SSITC_TEST)
+,MO_LENGTH,ZL,TAU,U_SIGMA,V_SIGMA,W_SIGMA,USTAR,WD,WS,WS_MAX)
+#,FC_SSITC_TEST,FCH4_SSITC_TEST,H_SSITC_TEST,LE_SSITC_TEST,TAU_SSITC_TEST)
 ```
 
 
 ```{r}
-siteID = "US-YK2"
+siteID = "US-NGC"
 resolution = 'HH'
 tsstart = US_YK2$TIMESTAMP_START[1]
 tsend   = US_YK2$TIMESTAMP_END[nrow(US_YK2)]

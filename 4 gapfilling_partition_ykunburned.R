@@ -1,11 +1,11 @@
 rm(list = ls())
 library(REddyProc)
-setwd('C:/Users/karndt.WHRC/Desktop/sites/YKD/Ameriflux YK/unburned/') #use this to set your directory
+setwd('C:/Users/karndt.WHRC/Desktop/sites/council/data') #use this to set your directory
 
 #help("REddyProc-package")
 
   #+++ Load data with one header and one unit row from (tab-delimited) text file
-    EddyData.F <- fLoadTXTIntoDataframe('./reddy_ykdub.txt')
+    EddyData.F <- fLoadTXTIntoDataframe('./reddy_council.txt')
   # note: use \code{fFilterAttr} to subset rows while keeping the units attributes
   
     #subset out problematic repeat rows
@@ -21,8 +21,8 @@ setwd('C:/Users/karndt.WHRC/Desktop/sites/YKD/Ameriflux YK/unburned/') #use this
   #+++ Initialize R5 reference class sEddyProc for processing of eddy data
 #+++ with all variables needed for processing later
   EddyProc.C <- sEddyProc$new('YKD Unburned', EddyDataWithPosix.F, c('NEE','CH4','H','LE','Ustar','Rg','Tair','Tsoil','RH','VPD'))
-  EddyProc.C$sSetLocationInfo(LatDeg =  61.2548, LongDeg = -163.2590, TimeZoneHour = -9)
-  
+  EddyProc.C$sSetLocationInfo(LatDeg =  64.861774, LongDeg = -163.700214, TimeZoneHour = -9)
+
 #+++ Generate plots of all data in directory \plots (of current R working dir)
 #  EddyProc.C$sPlotDiurnalCycle('CH4')
 #  EddyProc.C$sPlotDiurnalCycle('NEE')
@@ -30,8 +30,8 @@ setwd('C:/Users/karndt.WHRC/Desktop/sites/YKD/Ameriflux YK/unburned/') #use this
 #  EddyProc.C$sPlotDiurnalCycle('Tair')
 
   #+++ Plot individual months/years to screen (of current R graphics device)
-  #EddyProc.C$sPlotHHFluxesY('NEE',Year = 2015)
-  #EddyProc.C$sPlotFingerprintY('NEE', Year=2014)
+  EddyProc.C$sPlotHHFluxesY('NEE',Year = 2019)
+  EddyProc.C$sPlotFingerprintY('NEE', Year=2019)
   
 #+++ Fill gaps in variables with MDS gap filling algorithm (without prior ustar filtering)
   EddyProc.C$sMDSGapFill('Rg',    FillAll=F) #Fill only the gaps 'Rg'
@@ -96,11 +96,11 @@ setwd('C:/Users/karndt.WHRC/Desktop/sites/YKD/Ameriflux YK/unburned/') #use this
   plot(-EddyProc.C$sTEMP$GPP_DT + EddyProc.C$sTEMP$Reco_DT ~ EddyProc.C$sTEMP$NEE_f ); abline(0,1,col='red')
   
   # #test results of gapfilling
-  # plot(EddyProc.C$sTEMP$NEE_orig,EddyProc.C$sTEMP$NEE_fall);abline(0,1,col='red')
-  # summary(lm(EddyProc.C$sTEMP$NEE_fall ~ EddyProc.C$sTEMP$NEE_orig))
-  # 
-  # plot(EddyProc.C$sTEMP$CH4_orig,EddyProc.C$sTEMP$CH4_fall);abline(0,1,col='red')
-  # summary(lm(EddyProc.C$sTEMP$CH4_fall ~ EddyProc.C$sTEMP$CH4_orig))
+  #  plot(EddyProc.C$sTEMP$NEE_orig,EddyProc.C$sTEMP$NEE_fall);abline(0,1,col='red')
+  #  summary(lm(EddyProc.C$sTEMP$NEE_fall ~ EddyProc.C$sTEMP$NEE_orig))
+  # # 
+  #  plot(EddyProc.C$sTEMP$CH4_orig,EddyProc.C$sTEMP$CH4_fall);abline(0,1,col='red')
+  #  summary(lm(EddyProc.C$sTEMP$CH4_fall ~ EddyProc.C$sTEMP$CH4_orig))
   
   
   #names(EddyProc.C$sTEMP)
@@ -125,5 +125,5 @@ setwd('C:/Users/karndt.WHRC/Desktop/sites/YKD/Ameriflux YK/unburned/') #use this
   CombinedDataAmeriflux.F$TIMESTAMP_END <- POSIXctToBerkeleyJulianDate( EddyProc.C$sExportData()[[1]] )
   head(tmp <- BerkeleyJulianDateToPOSIXct( CombinedDataAmeriflux.F$TIMESTAMP_END ))
   #colnames(tmp <- renameVariablesInDataframe(CombinedData.F, getAmerifluxToBGC05VariableNameMapping() ))
-  fWriteDataframeToFile(CombinedData.F, 'ykdub-Results_data.txt', 'data')
+  fWriteDataframeToFile(CombinedData.F, 'council-Results_data.txt', 'data')
   

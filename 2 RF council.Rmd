@@ -91,7 +91,7 @@ Examine variable importance
 ```{r}
 set.seed(123)
 cc = ncf[complete.cases(ncf$nee),]
-cc = subset(cc,cc$nee < 15 & cc$nee > -15)
+cc = subset(cc,cc$nee < 12 & cc$nee > -14)
 #boruta = Boruta(nee ~ tair + rh + rg + ws + tsoil + swc + vpd + le + h,data = cc,doTrace = 2,maxRuns = 100)
 
 #plot(boruta,las = 2)
@@ -126,7 +126,8 @@ ggplot(data = cf)+theme_bw()+
 
 ggplot(data = cf)+theme_bw()+
   geom_point(aes(date,rfnee,col='RF'),alpha=0.2)+
-  geom_point(aes(date,FC,col='Real'),alpha=0.2)
+  geom_point(aes(date,FC,col='Real'),alpha=0.2)+
+  geom_hline(yintercept = 0)
 ```
 Filling out the extremes better, no anomalous winter sinks. Looks better than ANN
 
@@ -141,10 +142,10 @@ yk2nee = ggplot(data = test.data.nee,aes(rfnee,FC))+theme_bw()+
   geom_point(alpha=0.2)+
   scale_fill_viridis_c()+
   geom_abline(slope = 1,intercept = 0,col='red',lty=1)+
-  scale_x_continuous(limits = c(-25,25),expression('Random Forest NEE ('*mu*mol~CO[2]~m^-2~s^-1*')'))+
-  scale_y_continuous(limits = c(-25,25),expression('Eddy Covariance NEE ('*mu*mol~CO[2]~m^-2~s^-1*')'))+
-  annotate(geom = 'text',x = 6, y = -8,label=expression(R^2~"= 0.39"),size = 3)+
-  annotate(geom = 'text',x = 6,y = -10,label=expression(Slope~"= 0.94"),size = 3)+
+  scale_x_continuous(limits = c(-20,20),expression('Random Forest NEE ('*mu*mol~CO[2]~m^-2~s^-1*')'))+
+  scale_y_continuous(limits = c(-20,20),expression('Eddy Covariance NEE ('*mu*mol~CO[2]~m^-2~s^-1*')'))+
+  annotate(geom = 'text',x = 6, y = -8,label=expression(R^2~"= 0.41"),size = 3)+
+  annotate(geom = 'text',x = 6,y = -10,label=expression(Slope~"= 0.98"),size = 3)+
   theme(text = element_text(size = 8))
 
 yk2nee
@@ -162,7 +163,8 @@ cc = ncf[complete.cases(ncf$fch4),]
 try random forest for CH4
 ```{r,error=FALSE,warning=FALSE}
 #use 80% of data set as training set and 20% as test set, expanded to try to reprsent the larger points better
-#cc = subset(cc,cc$fch4 < 0.2)
+cc = subset(cc,cc$fch4 < 50)
+cc = subset(cc,cc$fch4 > -25)
 sample.ch4 = sample(c(TRUE, FALSE), nrow(cc), replace=TRUE, prob=c(0.8,0.2))
 train.ch4  = cc[sample.ch4, ]
 test.ch4   = cc[!sample.ch4, ]
@@ -186,13 +188,25 @@ Plots and Validation
 ```{r,error=FALSE,warning=FALSE}
 ggplot(data = cf)+theme_bw()+
   geom_point(aes(date,rfch4,col='RF'),alpha=0.5)+
-  geom_point(aes(date,ch4_flux.c,col='Real'),alpha=0.5)+
-  scale_x_datetime(limits = as.POSIXct(c("2020-07-01","2020-07-30")))
+  geom_point(aes(date,FCH4,col='Real'),alpha=0.5)+
+  scale_x_datetime(limits = as.POSIXct(c("2019-07-01","2019-07-30")))
+ # scale_y_continuous(limits = c(-0.05,0.05))
+
+ggplot(data = cf)+theme_bw()+
+  geom_point(aes(date,rfch4,col='RF'),alpha=0.5)+
+  geom_point(aes(date,FCH4,col='Real'),alpha=0.5)+
+  scale_x_datetime(limits = as.POSIXct(c("2019-01-01","2019-12-30")))
+ # scale_y_continuous(limits = c(-0.05,0.05))
+
+ggplot(data = cf)+theme_bw()+
+  geom_point(aes(date,rfch4,col='RF'),alpha=0.5)+
+  geom_point(aes(date,FCH4,col='Real'),alpha=0.5)+
+  scale_x_datetime(limits = as.POSIXct(c("2022-01-01","2022-12-30")))
  # scale_y_continuous(limits = c(-0.05,0.05))
 
 ggplot(data = cf)+theme_bw()+
   geom_point(aes(date,rfch4,col='RF'),alpha=0.2)+
-  geom_point(aes(date,ch4_flux.c,col='Real'),alpha=0.2)
+  geom_point(aes(date,FCH4,col='Real'),alpha=0.2)
 ```
 Very high values seem to be driving the model to learn higher than expected fluxes
 
@@ -200,33 +214,33 @@ Very high values seem to be driving the model to learn higher than expected flux
 ```{r,error=FALSE,warning=FALSE}
 test.data.ch4 = merge(test.ch4,cf,by = 'date',all.x = T)
 
-yk2ch4 = ggplot(data = test.data.ch4,aes(rfch4,ch4_flux.c))+theme_bw()+
+yk2ch4 = ggplot(data = test.data.ch4,aes(rfch4,FCH4))+theme_bw()+
   geom_hline(yintercept = 0,lty=2)+
   geom_vline(xintercept = 0,lty=2)+
   geom_point(alpha=0.2)+
   scale_fill_viridis_c()+
   geom_abline(slope = 1,intercept = 0,col='red',lty=1)+
-  scale_x_continuous(limits = c(-0.05,0.1),expression('Random Forest '*CH[4]~flux~" ("*mu*mol~CH[4]~m^-2~s^-1*')'))+
-  scale_y_continuous(limits = c(-0.05,0.1),expression('Eddy Covariance '*CH[4]~flux~" ("*mu*mol~CH[4]~m^-2~s^-1*')'))+
+  scale_x_continuous(limits = c(-50,150),expression('Random Forest '*CH[4]~flux~" ("*mu*mol~CH[4]~m^-2~s^-1*')'))+
+  scale_y_continuous(limits = c(-50,150),expression('Eddy Covariance '*CH[4]~flux~" ("*mu*mol~CH[4]~m^-2~s^-1*')'))+
   annotate(geom = 'text',x = 0.07,y = -0.025,label = expression(R^2~"= 0.52"),size = 3)+
   annotate(geom= 'text',x = 0.07,y = -0.035,label = expression(Slope~"= 1.09"),size = 3)+
   theme(text = element_text(size = 8))
 
 yk2ch4
-summary(lm(test.data.ch4$ch4_flux.c ~ test.data.ch4$rfch4))
+summary(lm(test.data.ch4$FCH4 ~ test.data.ch4$rfch4))
 ```
 
 
 ```{r}
 library(cowplot)
 
-png(filename = 'C:/Users/karndt.WHRC/Desktop/sites/YKD/plots/2023 yk2unburned gapfilling validation.png',width = 6,height = 4,units = 'in',res = 1000)
+#png(filename = 'C:/Users/karndt.WHRC/Desktop/sites/YKD/plots/2023 yk2unburned gapfilling validation.png',width = 6,height = 4,units = 'in',res = 1000)
 plot_grid(yk2nee,yk2ch4)
-dev.off()
+#dev.off()
 ```
 
 
 save off the data
 ```{r,error=FALSE,warning=FALSE}
-write.csv(x = cf,file = "./ykd_unburned_2019_2023_gf.csv",quote = F,row.names = F)
+write.csv(x = cf,file = "./council_2017_2022_gf.csv",row.names = F)
 ```

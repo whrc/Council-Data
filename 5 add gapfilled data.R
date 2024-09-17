@@ -2,16 +2,16 @@ rm(list = ls())
 
 library(data.table)
 library(ggplot2)
-setwd('C:/Users/karndt.WHRC/Desktop/sites/YKD/Ameriflux YK/unburned/') #use this to set your directory
+setwd('C:/Users/karndt.WHRC/Desktop/sites/council/data') #use this to set your directory
 
 Sys.setenv(TZ='UTC')
 
 #read the ungapfilled data
-dat = fread('./ykd_unburned_2019_2023_gf.csv')
+dat = fread('./council_2017_2022_gf.csv')
 
 #read in the gapfilling output
-gfh  = fread('./data/ykdub-Results_data.txt',header = T,nrows = 0)
-gf   = fread('./data/ykdub-Results_data.txt',header = F,skip  = 2,na.strings = c('-9999','-10000','-9.9990e+03'))
+gfh  = fread('./data/council-Results_data.txt',header = T,nrows = 0)
+gf   = fread('./data/council-Results_data.txt',header = F,skip  = 2,na.strings = c('-9999','-10000','-9.9990e+03'))
 names(gf) = names(gfh)
 
 #break apart the time column
@@ -37,9 +37,9 @@ gfdat = data.frame(gf$ts,
                    gf$VPD_f,
                    gf$RH_f,
                    gf$Reco,
-                   gf$Reco_DT,
-                   gf$GPP_f,
-                   gf$GPP_DT)
+            #       gf$Reco_DT,
+                   gf$GPP_f)
+             #      gf$GPP_DT)
 
 names(gfdat) = c('ts',
                  'Rg_f',
@@ -54,9 +54,9 @@ names(gfdat) = c('ts',
                  'VPD_f',
                  'RH_f',
                  'Reco',
-                 'GPP_DT',
-                 'GPP_f',
-                 'Reco_DT')
+           #      'GPP_DT',
+                 'GPP_f')
+           #      'Reco_DT')
 
 #merge data frames
 dat = merge(dat,gfdat,by = 'ts')
@@ -65,4 +65,4 @@ dat = subset(dat,dat$dup == 'FALSE')
 
 summary(dat$ts)
 
-write.csv(x = dat,file = './ykd_unburned_gapfilled_clean_2019_2023.csv',quote = F,row.names = F)
+write.csv(x = dat,file = './council_gapfilled_clean_2017_2022.csv',quote = F,row.names = F)
