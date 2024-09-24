@@ -41,6 +41,10 @@ reddy$Rg = reddy$Rg - min(reddy$Rg)
 reddy$Rg = ifelse(reddy$Rg < 0,0,reddy$Rg) #set negatives to 0
 reddy$RH = ifelse(reddy$RH > 100,100,reddy$RH)
 
+# experiment further cleaning to see if partitioning will work
+reddy$NEE = ifelse(reddy$NEE < -15,NA,reddy$NEE) #set negatives to 0
+reddy$NEE = ifelse(reddy$NEE > 15,NA,reddy$NEE) #set negatives to 0
+
 #add the second header row and resave as a txt
 h2 = c('--','--','--','umolm-2s-1','nmolm-2s-1','Wm-2','Wm-2','ms-1','Wm-2','DegC','DegC','%')
 names(h2) = names(reddy)
